@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "macros.html" import card_view, rule_list %}
+{% block title %}Round {{ game.round_number }} · Relic Ruckus{% endblock %}
+{% block content %}
+  <section class="table-status" aria-label="Table status">
+    <div>
+      <p class="eyebrow">Round {{ game.round_number }}</p>
+      <h1>{{ 'Match complete' if game.winners else 'At the table' }}</h1>
+      <p>Dealer {{ game.players[game.dealer].name }}{% if not game.winners %} <span aria-hidden="true">·</span> {% if game.result and game.result.outcome == 'tie' %}Caller {{ game.lead_player.name }} · {{ game.result.stat }} carries forward{% else %}{{ 'Next leader' if game.result else 'Leader' }} {{ game.lead_player.name }}{% endif %}{% endif %}</p>
+    </div>
+    <ul class="counts" aria-label="Cards by seat">
+      {% for player in game.players %}<li><span>{{ player.name }}</span><strong>{{ player.pile|length }}</strong><small>{{ 'out' if not player.pile and not game.winners else 'cards' }}</small></li>{% endfor %}
+      <li><span>Pot</span><strong>{{ game.pot|length }}</strong><small>cards</small></li>
+    </ul>
+  </section>
+  {% if game.phase == "handoff" %}
+  <section class="panel handoff">
+    <span class="handoff-icon" aria-hidden="true">{{ '✦' if game.lead_player.computer else '→' }}</span>
+    <p class="eyebrow kicker">{{ 'Computer turn' if game.lead_player.computer else 'Device handoff' }}</p>
+    <h2>{{ 'The computer leads' if game.lead_player.computer else 'Pass the device to ' ~ game.lead_player.name }}</h2>
+    <p class="muted">{{ 'Reveal the computer’s choice when everyone is ready.' if game.lead_player.computer else 'Only the leader should look at the next screen.' }}</p>
+    <form method="post" action="{{ url_for('turn') }}">
+      <input type="hidden" name="form_token" value="{{ form_token }}">
+      <input type="hidden" name="table_key" value="{{ table_key }}">
+      <input type="hidden" name="revision" value="{{ game.revision }}">
+      <button class="button primary" name="action" value="reveal">{{ 'Reveal choice and result' if game.lead_player.computer else 'Reveal my card' }} <span aria-hidden="true">→</span></button>
+    </form>
+  </section>
+  {% elif game.phase == "choice" %}
+  <section class="choice-layout" aria-labelledby="choice-title">
+    {{ card_view(game.private_card, stats, image_uri, is_source_link) }}
+    <div class="panel choice">
+      <p class="eyebrow kicker">Private choice · {{ game.lead_player.name }}</p>
+      <h2 id="choice-title">Call one stat</h2>
+      <p class="muted">Your choice locks before the other cards are revealed. Highest score wins.</p>
+      <form method="post" action="{{ url_for('turn') }}" class="stat-form">
+        <input type="hidden" name="form_token" value="{{ form_token }}">
+        <input type="hidden" name="table_key" value="{{ table_key }}">
+        <input type="hidden" name="revision" value="{{ game.revision }}">
+        <input type="hidden" name="action" value="choose">
+        {% for stat, tip in stats.items() %}
+          <button class="stat-button" name="stat" value="{{ stat }}" title="{{ tip }}" aria-describedby="tip-{{ loop.index }}"><span>{{ stat }}</span><strong>{{ game.private_card.score(stat) }}</strong></button>
+          <span class="sr-only" id="tip-{{ loop.index }}">{{ tip }}</span>
+        {% endfor %}
+      </form>
+    </div>
+  </section>
+  {% else %}
+  <section aria-labelledby="result-title">
+    <div class="panel result-banner">
+      <div>
+        <p class="eyebrow kicker">Public result · {{ game.result.stat }}</p>
+        <h2 id="result-title">
+          {% if game.result.outcome == "shared" %}Shared win
+          {% elif game.winners %}{{ winners }} wins the match
+          {% elif game.result.outcome == "tie" %}The pot grows
+          {% else %}{{ game.players[game.result.collector].name }} takes the round{% endif %}
+        </h2>
+        <p>{{ message }}{% if game.result.outcome == "shared" %} {{ winners }} share the match.{% endif %}</p>
+      </div>
+      {% if game.winners %}
+      <form method="post" action="{{ url_for('leave') }}">
+        <input type="hidden" name="form_token" value="{{ form_token }}">
+        <input type="hidden" name="table_key" value="{{ table_key }}">
+        <button class="button primary">Set up another match <span aria-hidden="true">→</span></button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('turn') }}">
+        <input type="hidden" name="form_token" value="{{ form_token }}">
+        <input type="hidden" name="table_key" value="{{ table_key }}">
+        <input type="hidden" name="revision" value="{{ game.revision }}">
+        <button class="button primary" name="action" value="continue">{{ 'Continue on ' ~ game.result.stat if game.result.outcome == "tie" else 'Next handoff' }} <span aria-hidden="true">→</span></button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="results-grid">
+      {% for play in game.result.plays %}
+      <div class="result-entry">
+        <p class="result-score{% if play.seat in game.result.high_seats %} high-score{% endif %}"><span>{{ game.players[play.seat].name }}{% if play.seat == game.result.collector %}<small>Collector</small>{% elif play.seat in game.result.high_seats %}<small>Top score</small>{% endif %}</span><strong title="{{ stats[game.result.stat] }}">{{ play.score }}</strong></p>
+        {{ card_view(game.deck[play.card_id], stats, image_uri, is_source_link, compact=true) }}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  <details class="panel game-rules">
+    <summary>Rules at the table</summary>
+    {{ rule_list(rules) }}
+  </details>
+  {% if not game.winners %}
+  <details class="end-game">
+    <summary>End this match</summary>
+    <form method="post" action="{{ url_for('leave') }}">
+      <input type="hidden" name="form_token" value="{{ form_token }}">
+      <input type="hidden" name="table_key" value="{{ table_key }}">
+      <button class="button secondary">Return to setup</button>
+    </form>
+  </details>
+  {% endif %}
+{% endblock %}

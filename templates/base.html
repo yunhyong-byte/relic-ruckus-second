@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101d34">
+  <title>{% block title %}Relic Ruckus{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='game.js') }}"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="{{ url_for('play') }}"><span class="brand-mark" aria-hidden="true">✦</span><span>Relic <b>Ruckus</b></span></a>
+    <nav aria-label="Main navigation">
+      <a href="{{ url_for('play') }}" {% if active == 'play' %}aria-current="page"{% endif %}>Play</a>
+      <a href="{{ url_for('editor') }}" {% if active == 'editor' %}aria-current="page"{% endif %}>Deck editor</a>
+      <a href="{{ url_for('how_to_play') }}" {% if active == 'rules' %}aria-current="page"{% endif %}>How to play</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="main">
+  {% for notice in get_flashed_messages() %}<p class="notice" role="status">{{ notice }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="wrap footer"><span>Relic Ruckus</span><span>A cultural-heritage card game</span></footer>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% macro card_view(card, stats, image_uri, is_source_link, compact=false) %}
+<article class="relic-card">
+  {% if card.shows_image %}<img class="portrait" src="{{ image_uri(card) }}" alt="{{ card.alt }}" {% if compact %}loading="lazy"{% endif %}>{% endif %}
+  <div class="card-copy">
+    <p class="eyebrow kicker">{{ card.category }}</p>
+    <h3>{{ card.name }}</h3>
+    <p class="subject">{{ card.subject }}</p>
+    {% if card.description %}
+    <p class="card-label">{{ 'Archival description' if card.archive else 'Heritage notes' }}</p>
+    <p>{{ card.description }}</p>
+    {% endif %}
+    <p class="card-label">Fictional biography</p>
+    <p>{{ card.bio }}</p>
+    {% if card.reference %}
+    <details class="object-details">
+      <summary>Object and media details</summary>
+      {% if card.reference.title != card.subject %}<p><strong>{{ card.reference.title }}</strong></p>{% endif %}
+      <dl>
+        {% for label, value in card.reference.metadata %}
+        <div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+        {% endfor %}
+      </dl>
+      <p>{{ card.reference.notes }}</p>
+      <ul>
+        {% for label, url in card.reference.links %}
+        {% if is_source_link(url) %}<li><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ label }} <span aria-hidden="true">↗</span></a></li>{% endif %}
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if compact and (card.shows_image or (card.archive and card.description)) %}
+    <details class="credits">
+      <summary>Credits</summary>
+      {{ credits(card, is_source_link) }}
+    </details>
+    {% elif not compact %}
+    {{ credits(card, is_source_link) }}
+    {% endif %}
+  </div>
+</article>
+{% endmacro %}
+
+{% macro credits(card, is_source_link) %}
+{% for label, credit, visible in [('Image', card.image_credit, card.shows_image), ('Archival text', card.text_credit, card.archive and card.description)] %}
+{% if visible %}
+<p class="credit"><strong>{{ label }}</strong> · {{ credit.credit }} · {{ credit.creator }} · {{ credit.rights }} ·
+  {% if is_source_link(credit.source) %}<a href="{{ credit.source }}" rel="noreferrer">Source</a>{% else %}{{ credit.source }}{% endif %}
+</p>
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro rule_list(rules) %}
+<ol class="rule-list">
+  {% for rule in rules %}<li>{{ rule }}</li>{% endfor %}
+</ol>
+{% endmacro %}

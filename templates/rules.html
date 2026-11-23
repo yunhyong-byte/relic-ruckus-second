@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "macros.html" import rule_list %}
+{% block title %}How to play · Relic Ruckus{% endblock %}
+{% block content %}
+<section class="panel reading">
+  <p class="eyebrow kicker">Table rules</p>
+  <h1>How to play</h1>
+  <p>Enter one to three human names. The computer joins automatically. The deck is shuffled and all 36 cards are dealt evenly. The player to the dealer’s left leads.</p>
+  {{ rule_list(rules) }}
+  <a class="button primary" href="{{ url_for('play') }}">Back to the table <span aria-hidden="true">→</span></a>
+</section>
+{% endblock %}

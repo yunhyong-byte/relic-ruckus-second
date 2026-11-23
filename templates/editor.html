@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Deck editor · Relic Ruckus{% endblock %}
+{% block content %}
+<header class="page-intro">
+  <p class="eyebrow kicker">The collection</p>
+  <h1>Deck editor</h1>
+  <p class="muted">Find a card to change its ratings, story, portrait or credits. Saved edits appear in new matches in both editions.</p>
+</header>
+<section class="panel editor-index">
+  <form class="filters" method="get">
+    <div><label for="q">Search the deck</label><input id="q" name="q" value="{{ query }}" maxlength="120" placeholder="Character, object or gallery"></div>
+    <div><label for="category">Gallery</label><select id="category" name="category">
+      {% for item in ['All galleries'] + (categories|list) %}<option{% if item == category %} selected{% endif %}>{{ item }}</option>{% endfor %}
+    </select></div>
+    <button class="button primary">Find cards</button>
+  </form>
+  <p class="muted found" role="status">{{ cards|length }} {{ 'card' if cards|length == 1 else 'cards' }}</p>
+  <ul class="catalogue">
+    {% for card in cards %}
+    <li><a href="{{ url_for('edit_card', card_id=card.id) }}"><span class="gallery-mark" aria-hidden="true">{{ ['✦','◈','◆','◉','✿','✧'][categories.index(card.category)] }}</span><span><strong>{{ card.name }}</strong><small>{{ card.subject }} · {{ card.category }}</small></span><span aria-hidden="true">→</span></a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

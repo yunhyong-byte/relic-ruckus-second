@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "macros.html" import card_view %}
+{% block title %}{{ card.name }} · Deck editor{% endblock %}
+{% block content %}
+<header class="page-intro">
+  <a class="text-link" href="{{ url_for('editor') }}"><span aria-hidden="true">←</span> Deck editor</a>
+  <h1>{{ card.name }}</h1>
+  <p class="muted">{{ card.subject }} · Card ID {{ card.id }}</p>
+</header>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<div class="edit-layout">
+  <form class="panel edit-form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="form_token" value="{{ form_token }}">
+    <input type="hidden" name="revision" value="{{ card.revision }}">
+    {% if draft_token %}<input type="hidden" name="draft_token" value="{{ draft_token }}">{% endif %}
+    <h2>Card details</h2>
+    {% for field in ['name', 'subject', 'category', 'heritage', 'bio'] %}
+    <div class="field">
+      <label for="{{ field }}">{{ fields[field] }}</label>
+      {% if field in ['heritage', 'bio'] %}
+      <textarea id="{{ field }}" name="{{ field }}" rows="3" maxlength="{{ 1000 if field == 'heritage' else 2000 }}" required>{{ values[field] }}</textarea>
+      {% elif field == 'category' %}
+      <select id="{{ field }}" name="{{ field }}">{% for item in categories %}<option{% if values[field] == item %} selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+      {% else %}
+      <input id="{{ field }}" name="{{ field }}" value="{{ values[field] }}" maxlength="{{ 80 if field == 'name' else 120 }}" required>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <fieldset class="score-fields">
+      <legend>Fictional ratings</legend>
+      <div>{% for stat, tip in stats.items() %}
+        <div><label for="stat-{{ loop.index }}" title="{{ tip }}">{{ stat }}</label><input id="stat-{{ loop.index }}" type="number" name="{{ stat }}" value="{{ values[stat] }}" min="1" max="100" required aria-describedby="score-tip-{{ loop.index }}"><span class="sr-only" id="score-tip-{{ loop.index }}">{{ tip }}</span></div>
+      {% endfor %}</div>
+    </fieldset>
+    <details class="object-details object-editor"{% if error and 'object details' in error %} open{% endif %}>
+      <summary>Edit object and media details</summary>
+      <p class="muted">When the record opens the image or recording, you can leave the separate media URL blank.</p>
+      {% for field, label in reference_fields.items() %}
+      {% set key = 'ref_' ~ field %}
+      <div class="field">
+        <label for="{{ key }}">{{ label }}</label>
+        {% if field == 'notes' %}
+        <textarea id="{{ key }}" name="{{ key }}" maxlength="600" rows="3">{{ values[key] }}</textarea>
+        {% elif field == 'media_kind' %}
+        <select id="{{ key }}" name="{{ key }}"><option value="">Choose a media type</option>
+          {% for item in media_kinds %}<option{% if item == values[key] %} selected{% endif %}>{{ item }}</option>{% endfor %}
+        </select>
+        {% else %}
+        <input id="{{ key }}" name="{{ key }}" value="{{ values[key] }}" maxlength="{{ 2000 if field.endswith('_url') else 600 }}">
+        {% endif %}
+      </div>
+      {% endfor %}
+    </details>
+    <h2>Portrait and archival text</h2>
+    <p class="muted">For archival replacements, use public-domain, CC0 or explicitly licensed material. Credit the specific image and text separately.</p>
+    <div class="field">
+      <label for="mode">Display mode</label>
+      <select id="mode" name="mode">{% for mode in modes %}<option{% if mode == values.mode %} selected{% endif %}>{{ mode }}</option>{% endfor %}</select>
+    </div>
+    <div class="field"><label for="image">Replacement image</label><input id="image" name="image" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG or WebP, up to 5 MB. Update the image credit for the uploaded file.</small></div>
+    <label class="checkbox"><input type="checkbox" name="remove" value="1"> Remove the stored image</label>
+    <div class="field"><label for="alt">Image alt text</label><input id="alt" name="alt" value="{{ values.alt }}" maxlength="300"></div>
+    <div class="field"><label for="archive">Archival description</label><textarea id="archive" name="archive" maxlength="2000" rows="3">{{ values.archive }}</textarea><small>When shown, this takes the place of the original heritage notes.</small></div>
+    {% for kind in ('image', 'text') %}
+      <fieldset class="credit-fields">
+        <legend>{{ 'Image credit' if kind == 'image' else 'Archival text credit' }}</legend>
+        {% for field, label in credit_fields.items() %}
+        {% set field_id = kind ~ '_' ~ field %}
+        <div class="field"><label for="{{ field_id }}">{{ label }}</label><input id="{{ field_id }}" name="{{ field_id }}" value="{{ values[field_id] }}" maxlength="500"></div>
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+    <button class="button primary" name="action" value="preview">Preview changes <span aria-hidden="true">→</span></button>
+  </form>
+  <aside class="editor-preview" aria-labelledby="preview-title">
+    <h2 id="preview-title">{{ 'Draft preview' if preview else 'Saved card' }}</h2>
+    {% if preview %}
+    <form method="post" class="save-form">
+      <input type="hidden" name="form_token" value="{{ form_token }}">
+      <input type="hidden" name="draft_token" value="{{ draft_token }}">
+      <button class="button primary" name="action" value="save">Save changes</button>
+    </form>
+    {% endif %}
+    {% set shown = preview or card %}
+    {{ card_view(shown, stats, image_uri, is_source_link) }}
+    <dl class="rating-list">
+      {% for stat, tip in stats.items() %}<div><dt title="{{ tip }}">{{ stat }}</dt><dd>{{ shown.score(stat) }}</dd></div>{% endfor %}
+    </dl>
+  </aside>
+</div>
+{% endblock %}
